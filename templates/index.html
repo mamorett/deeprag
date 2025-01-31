@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RAG Chatbot</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/axios/1.6.2/axios.min.js"></script>
+    
+    <style>
+
+
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .chat-container {
+            background-color: white;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+        .chat-messages {
+            height: 800px;
+            overflow-y: auto;
+            margin-bottom: 20px;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+        }
+
+        /* Add line spacing and padding for messages */
+        .message {
+            margin: 10px 0;
+            padding: 12px;
+            border-radius: 5px;
+            line-height: 1.6;
+        }
+
+        /* Think block styling */
+        .think-block {
+            font-style: italic;
+            color: #b6acac;
+            font-weight: bold; /* Emphasize the think block */
+        }        
+        .user-message {
+            background-color: #e3f2fd;
+            margin-left: 20%;
+        }
+        .bot-message {
+            background-color: #f5f5f5;
+            margin-right: 20%;
+        }
+        .input-container {
+            display: flex;
+            gap: 10px;
+        }
+        input {
+            flex-grow: 1;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+        }
+        button {
+            padding: 10px 20px;
+            background-color: #2196f3;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        button:disabled {
+            background-color: #ccc;
+        }
+        .loading {
+            color: #666;
+            font-style: italic;
+        }
+        .header {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            justify-content: center;
+        }
+        .chat-logo {
+            height: 50px;
+        }
+
+        
+    </style>
+</head>
+<body>
+
+    
+    <div class="chat-container">
+        <div class="header">
+            <img src="{{ url_for('static', filename='logo.png') }}" alt="Chatbot Logo" class="chat-logo">
+            <h1>RAG Chatbot</h1>
+        </div>        
+        <div class="chat-messages" id="chatMessages"></div>
+        <div class="input-container">
+            <input type="text" id="questionInput" placeholder="Type your question here...">
+            <button onclick="sendQuestion()" id="sendButton">Send</button>
+        </div>
+    </div>
+
+    <script>
+        const chatMessages = document.getElementById('chatMessages');
+        const questionInput = document.getElementById('questionInput');
+        const sendButton = document.getElementById('sendButton');
+    
+        function addMessage(text, isUser) {
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `message ${isUser ? 'user-message' : 'bot-message'}`;
+            messageDiv.textContent = text;
+            chatMessages.appendChild(messageDiv);
+            chatMessages.scrollTop = chatMessages.scrollHeight;
+        }
+    
+        function formatThinkBlock(responseText) {
+            const thinkStart = '<think>';
+            const thinkEnd = '</think>';
+            
+            if (responseText.includes(thinkStart) && responseText.includes(thinkEnd)) {
+                const beforeThink = responseText.split(thinkStart)[0];
+                const thinkContent = responseText.split(thinkStart)[1].split(thinkEnd)[0];
+                const afterThink = responseText.split(thinkEnd)[1];
+
+                const formattedResponse = [];
+                if (beforeThink) formattedResponse.push(beforeThink);
+                formattedResponse.push(`<span class="think-block">${thinkContent}</span><br>`);
+                if (afterThink) formattedResponse.push(afterThink);
+
+                return formattedResponse.join('');
+            }
+
+            return responseText; // Return as-is if no <think> block
+        }
+
+    
+        async function sendQuestion() {
+            const question = questionInput.value.trim();
+            if (!question) return;
+    
+            // Disable input and button while processing
+            questionInput.disabled = true;
+            sendButton.disabled = true;
+            
+            // Add user message
+            addMessage(question, true);
+            
+            // Add loading message
+            const loadingDiv = document.createElement('div');
+            loadingDiv.className = 'message bot-message loading';
+            loadingDiv.textContent = 'Thinking...';
+            chatMessages.appendChild(loadingDiv);
+    
+            try {
+                const response = await axios.post('/query', { question });
+                // Remove loading message
+                chatMessages.removeChild(loadingDiv);
+                
+                // Format the response to handle <think> block
+                const formattedResponse = formatThinkBlock(response.data.response);
+                
+                // Add bot response
+                const messageDiv = document.createElement('div');
+                messageDiv.className = 'message bot-message';
+                messageDiv.innerHTML = formattedResponse;  // Use innerHTML to allow HTML rendering
+                chatMessages.appendChild(messageDiv);
+            } catch (error) {
+                // Remove loading message
+                chatMessages.removeChild(loadingDiv);
+                // Add error message
+                addMessage('Error: ' + (error.response?.data?.error || 'Failed to get response'), false);
+            }
+    
+            // Re-enable input and button
+            questionInput.value = '';
+            questionInput.disabled = false;
+            sendButton.disabled = false;
+            questionInput.focus();
+        }
+    
+        // Allow Enter key to send message
+        questionInput.addEventListener('keypress', function(e) {
+            if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                sendQuestion();
+            }
+        });
+    </script>
+    
+    <style>
+        .think-block {
+            font-style: italic;
+            color: #b6acac; /* Red color for think block */
+            /* font-weight: bold; */
+        }
+    </style>
+    
+</body>
+</html>
