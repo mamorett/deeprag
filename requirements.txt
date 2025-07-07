@@ -1,0 +1,16 @@
+langchain-core
+langchain-huggingface
+langchain-ollama
+psutil
+chromadb
+flask
+streamlit
+ebooklib
+beautifulsoup4
+torch
+transformers
+oracledb
+numpy
+python-dotenv
+langchain-community
+langchain-text-splitters
