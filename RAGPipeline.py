@@ -55,8 +55,6 @@ class RAGPipeline:
     def retriever(self, query: str):
         query_embedding = self.embeddings.embed_query(query)  # Convert query to 768D embedding
 
-        print(f"Query embedding dimension: {len(query_embedding)}")  # Debugging - Should print 768
-
         results = self.collection.query(
             query_embeddings=[query_embedding],  # Use embedding instead of query text
             n_results=4 
